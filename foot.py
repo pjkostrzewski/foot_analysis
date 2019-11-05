@@ -1,28 +1,7 @@
 from part import *
-
-
-def paint_gray(image):
-    gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-    gray = cv.GaussianBlur(gray, (9, 9), 7)
-    return gray
-
-
-def paint_median(gray):
-    return cv.medianBlur(gray, 9)
-
-
-def paint_edged(median):
-    edged = cv.Canny(median, 50, 50)
-    edged = cv.dilate(edged, None, iterations=3)
-    edged = cv.erode(edged, None, iterations=1)
-    return edged
-
-
-def do_some_painting_shit(image):
-    gray = paint_gray(image)
-    median = paint_median(gray)
-    edged = paint_edged(median)
-    return edged
+from paint import Paint
+from singleton_decorator import singleton
+import exceptions
 
 
 def get_foot_parts_from_cnts(cnts):
@@ -34,6 +13,7 @@ def right_or_left(big_toe_center, small_toe_center):
     return "RIGHT" if big_toe_center[0] < small_toe_center[0] else "LEFT"
 
 
+@singleton
 class Foot:
     def __init__(self, path_to_file):
         self.path = path_to_file
@@ -42,13 +22,27 @@ class Foot:
         self.width_image = np.size(self.image, 1)
         height_a4 = 297
         width_a4 = 210
-        self._pixel_ratio = round(height_a4/width_a4, 4)
-        self.edged = do_some_painting_shit(self.image)
+        self._pixel_ratio = round(self.height_img/height_a4, 4)
+        self.painter = Paint(self.image)
+        self.edged = self.painter.get_edged()
         self.all_cnts = self.set_cnts_from_edges()
         self._detected_parts = str(len(self.all_cnts))
         self._foot_parts = get_foot_parts_from_cnts(self.all_cnts)
         self._foot_contour = self.all_cnts
         self.side = right_or_left(self.foot_parts[0].center, self.foot_parts[-1].center)
+        #POINTS
+        self.outside_points = self.set_foot_outside_points()
+        self.top = self.outside_points["top"]
+        self.bottom = self.outside_points["bottom"]
+        self.left = self.foot_parts[0].outside_points["left"]
+        self.right = self.foot_parts[0].outside_points["right"]
+        #LENGTH
+        self.foot_length = get_distance_two_outside_points(self.top, self.bottom, self.pixel_ratio, mode='vertical')
+        self.foot_width = get_distance_two_outside_points(self.left, self.right, self.pixel_ratio, mode='horizontal')
+
+    def __repr__(self):
+        return "{} from {} -> ratio: {}, length: {}cm, width: {}cm, parts: {}".format(
+            self.__class__.__name__, self.path, self.pixel_ratio, self.foot_length, self.foot_width, self._detected_parts)
 
     @property
     def pixel_ratio(self) -> float:
@@ -60,7 +54,12 @@ class Foot:
 
     def set_cnts_from_edges(self):
         cnts = cv.findContours(self.edged.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        return imutils.grab_contours(cnts)
+        cnts = imutils.grab_contours(cnts)
+        # if len(cnts) < 3 or len(cnts) > 7:
+        #     raise exceptions.NotEnoughPartsToAnalysis
+        # else:
+        #     return cnts
+        return cnts
 
 
     @property
@@ -85,27 +84,45 @@ class Foot:
     def foot_parts(self, cnts):
         self._foot_parts = get_foot_parts_from_cnts(cnts)
 
+    def show_image(self):
+        cv.imshow("image", self.image)
+        cv.waitKey(0)
+        cv.destroyAllWindows()
 
-f = Foot('src/two.png')
-# print(f.foot_parts)
-# print(type(f.foot_contour))
-for part in f.foot_parts:
-    print(part)
-    print(part.center)
-    cv.circle(f.image, part.center, 11, (255, 255, 0), -1)
-    cv.circle(f.image, part.outside_points["left"], 8, (0, 50, 255), -1)
-    cv.circle(f.image, part.outside_points["right"], 8, (0, 255, 255), -1)
-    cv.circle(f.image, part.outside_points["top"], 8, (255, 50, 0), -1)
-    cv.circle(f.image, part.outside_points["bottom"], 8, (255, 255, 0), -1)
+    def write_image(self, path):
+        cv.imwrite(path, img=self.image)
+
+    def set_foot_outside_points(self):
+        c = self.all_cnts[0]
+        for x in range(1, len(self.all_cnts)):
+            c = np.append(c, self.all_cnts[x], axis=0)
+        return set_outside_points(c)
+
+
+f = Foot('src/gosia_4.png')
+print(f)
+# for part in f.foot_parts:
+#     print(part)
+#     print(part.center)
+#     f.painter.draw_point(part.center, (255, 255, 0))
+    # f.painter.draw_point(part.outside_points["left"], (0, 50, 255))
+    # f.painter.draw_point(part.outside_points["right"], (0, 255, 255))
+    # f.painter.draw_point(part.outside_points["top"], (255, 255, 0))
+    # f.painter.draw_point(part.outside_points["bottom"], (255, 255, 0))
+temp = f.foot_parts[1].outside_points["left"]
+f.painter.draw_line(f.left, temp, (102, 222, 59))
+f.painter.draw_line(f.left, (f.left[0], temp[1]), (0, 222, 159))
+print(f.left, temp)
+f.painter.draw_point(temp, (127, 127, 0))
+f.painter.draw_point(f.top, (0, 50, 255))
+f.painter.draw_point(f.bottom, (0, 50, 255))
+f.painter.draw_point(f.left, (0, 50, 255))
+f.painter.draw_point(f.right, (0, 50, 255))
+
+
 print(f.side)
 
-### DRAWING
+f.painter.draw_line(f.foot_parts[1].outside_points["top"], f.foot_parts[0].outside_points["bottom"], (0, 255, 0))
+f.painter.draw_line(f.foot_parts[0].outside_points["left"], f.foot_parts[0].outside_points["right"], (0, 255, 0))
+f.write_image("src/gosia_4_result.png")
 
-# cv.line(f.image, top, bottom, (0, 255, 0), thickness=3, lineType=8)
-# cv.line(f.image, left, right, (0, 255, 0), thickness=3, lineType=8)
-cv.imshow("image", f.image)
-cv.imwrite("src/two_result.png", img=f.image)
-# cv.imshow("edged", edged)
-# cv.imshow("gray", gray)
-# cv.waitKey(0)
-# cv.destroyAllWindows()
