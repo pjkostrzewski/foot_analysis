@@ -3,6 +3,7 @@ import numpy as np
 import cv2 as cv
 import math
 
+
 def set_outside_points(cnts) -> dict:
     return {
         "top": tuple(cnts[cnts[:, :, 1].argmin()][0]),

@@ -4,6 +4,9 @@ from singleton_decorator import singleton
 import exceptions
 
 
+# Wymiary kartki A4 to 210 x 297 mm
+
+
 def get_foot_parts_from_cnts(cnts):
     sorted_parts = sorted(cnts, key=cv.contourArea, reverse=True)
     return [Part(x, number) for number, x in list(enumerate(sorted_parts, 1))]
@@ -18,6 +21,7 @@ class Foot:
     def __init__(self, path_to_file):
         self.path = path_to_file
         self.image = cv.imread(self.path)
+        self.image = cv.resize(self.image, None, fx=0.3, fy=0.3)
         self.height_img = np.size(self.image, 0)
         self.width_image = np.size(self.image, 1)
         height_a4 = 297
@@ -99,16 +103,16 @@ class Foot:
         return set_outside_points(c)
 
 
-f = Foot('src/gosia_4.png')
+f = Foot('src/five.png')
 print(f)
-# for part in f.foot_parts:
-#     print(part)
-#     print(part.center)
-#     f.painter.draw_point(part.center, (255, 255, 0))
-    # f.painter.draw_point(part.outside_points["left"], (0, 50, 255))
-    # f.painter.draw_point(part.outside_points["right"], (0, 255, 255))
-    # f.painter.draw_point(part.outside_points["top"], (255, 255, 0))
-    # f.painter.draw_point(part.outside_points["bottom"], (255, 255, 0))
+for part in f.foot_parts:
+    print(part)
+    print(part.center)
+    f.painter.draw_point(part.center, (255, 255, 0))
+    f.painter.draw_point(part.outside_points["left"], (0, 50, 255))
+    f.painter.draw_point(part.outside_points["right"], (0, 255, 255))
+    f.painter.draw_point(part.outside_points["top"], (255, 255, 0))
+    f.painter.draw_point(part.outside_points["bottom"], (255, 255, 0))
 temp = f.foot_parts[1].outside_points["left"]
 f.painter.draw_line(f.left, temp, (102, 222, 59))
 f.painter.draw_line(f.left, (f.left[0], temp[1]), (0, 222, 159))
