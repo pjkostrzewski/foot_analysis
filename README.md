@@ -21,7 +21,9 @@ Project created with:
 * numpy
 * matplotlib
 
-## Application view
+IN FUTURE: flask webserver and deployment
+
+## Photos to analysis
 ![Application](src/gosia61.jpg)
 ![Application](src/skalowane1.png)
 
