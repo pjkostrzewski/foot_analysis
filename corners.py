@@ -35,7 +35,7 @@ def order_points(pts):
 
 
 def four_point_transform(image, pts):
-    print(pts)
+    # print(pts)
     pts = pts.astype("float32")
     pts.shape = (4, 2)
     rect = order_points(pts)
@@ -60,3 +60,27 @@ def load_and_resize(path, decrease):
     image = cv2.imread(path, cv2.IMREAD_COLOR)
     image = cv2.resize(image, None, fx=decrease, fy=decrease)
     return image
+
+
+def left_or_right(image):
+    y, x, _ = image.shape
+    first = image[1:y, 1:int(x/2)]
+    second = image[1:y, int(x/2):x]
+    first_sum = 0
+    second_sum = 0
+    for x in first:
+        for r, g, b in x:
+            rgb_sum = int((r+g+b)/3)
+            if rgb_sum < 100:
+                first_sum += rgb_sum
+    for x in second:
+        for r, g, b in x:
+            rgb_sum = int((r+g+b)/3)
+            if rgb_sum < 100:
+                second_sum += rgb_sum
+    assert first_sum != second_sum
+    cv2.imshow("frst", first)
+    cv2.imshow("second", second)
+    print("first:", first_sum)
+    print("second:", second_sum)
+    return "LEFT" if first_sum < second_sum else "RIGHT"
