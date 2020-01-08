@@ -31,7 +31,7 @@ IN FUTURE: flask webserver and deployment
 (0, 3.2856111724869663, 'stopa normalna')
 (1, 11.222305833974337, 'Niepoprawny kąt beta')
 
-![Application](src/result.png)
+![Application](result.png)
 
 ## Photos to analysis
 ![Application](src/gosia61.jpg)
